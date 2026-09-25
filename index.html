@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Личный плеер для организации и прослушивания embed-треков Spotify в одном месте." />
+    <title>Мой плеер · твои треки Spotify</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="app">
+      <header class="nav-bar">
+        <div class="nav-bar__brand">
+          <span class="nav-bar__mark" aria-hidden="true">♪</span>
+          <div>
+            <p class="nav-bar__title">Мой плеер</p>
+            <p class="nav-bar__subtitle">Твои Spotify-треки в одном месте</p>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="now-playing" aria-labelledby="now-playing-heading">
+          <h1 id="now-playing-heading" class="now-playing__heading">Сейчас играет</h1>
+
+          <div id="now-playing-embed" class="now-playing__embed" aria-live="polite">
+            <div class="empty-state" id="now-playing-empty">
+              <svg
+                class="empty-state__icon"
+                width="40"
+                height="40"
+                viewBox="0 0 40 40"
+                fill="none"
+                aria-hidden="true"
+              >
+                <circle cx="20" cy="20" r="19" stroke="currentColor" stroke-width="1.5" />
+                <path
+                  d="M16 14.5v11l9-5.5-9-5.5Z"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <p>Выберите трек из библиотеки — он появится здесь</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="library" aria-labelledby="library-heading">
+          <div class="library__header">
+            <h2 id="library-heading">Библиотека</h2>
+            <span class="badge-pill" id="library-count">0 треков</span>
+          </div>
+
+          <form id="add-form" class="add-form" aria-label="Добавить трек в библиотеку">
+            <label class="visually-hidden" for="add-input">Ссылка на трек Spotify или embed-код</label>
+            <input
+              id="add-input"
+              class="text-input"
+              type="text"
+              inputmode="url"
+              autocomplete="off"
+              placeholder="Вставьте ссылку open.spotify.com/... или embed-код"
+            />
+            <button type="submit" class="button-primary">Добавить</button>
+          </form>
+          <p class="add-form__hint" id="add-form-feedback" role="status"></p>
+
+          <ul id="track-list" class="track-list" aria-label="Добавленные треки"></ul>
+
+          <p class="library__empty" id="library-empty">
+            Пока пусто. Вставьте ссылку на трек, альбом или плейлист выше, чтобы начать.
+          </p>
+
+          <div class="library__footer">
+            <button id="export-btn" class="button-text" type="button">Экспорт библиотеки</button>
+            <label class="button-text library__import-label" for="import-input">
+              Импорт библиотеки
+              <input
+                id="import-input"
+                class="visually-hidden"
+                type="file"
+                accept="application/json"
+              />
+            </label>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <p>
+          Плеер организует официальные embed-блоки Spotify — треки грузятся напрямую с
+          open.spotify.com. Реклама и ограничения внутри плеера зависят от вашей учётной записи
+          Spotify (Free или Premium), а не от этого инструмента.
+        </p>
+      </footer>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
