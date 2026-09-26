@@ -1,3 +1,11 @@
+const DESKTOP_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+try {
+  Object.defineProperty(navigator, 'userAgent', { get: () => DESKTOP_UA, configurable: true });
+  Object.defineProperty(navigator, 'platform', { get: () => 'Win32', configurable: true });
+} catch (e) {
+  console.error("Не удалось подменить User-Agent:", e);
+}
+
 import {
   parseSpotifyInput,
   getEmbedHeight,
@@ -12,6 +20,7 @@ import {
   makeTrackId,
 } from "./store.js";
 
+import { fetchAudioStreamUrl } from "./stream.js";
 // --- DOM references -------------------------------------------------------
 const els = {
   form: document.getElementById("add-form"),
@@ -59,9 +68,10 @@ const renderEmptyState = () => {
   els.emptyState.dataset.visible = tracks.length === 0 ? "true" : "false";
 };
 
-const renderNowPlaying = () => {
+const renderNowPlaying = async () => {
   const track = tracks.find((t) => t.id === activeId);
 
+  // Если трек не выбран — показываем дефолтный экран
   if (!track) {
     els.nowPlaying.innerHTML = `
       <div class="empty-state" id="now-playing-empty">
@@ -74,20 +84,68 @@ const renderNowPlaying = () => {
     return;
   }
 
-  const height = getEmbedHeight(track.type);
+  // Выводим индикатор загрузки, пока ищется аудиопоток
+  els.nowPlaying.innerHTML = `
+    <div class="empty-state">
+      <div class="spinner" style="border: 3px solid var(--color-canvas-soft); border-top: 3px solid var(--color-primary); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite;"></div>
+      <p style="margin-top: 10px;">Получаем аудиопоток для:<br><strong>${escapeHtml(track.title)}</strong></p>
+    </div>
+    <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+  `;
 
-  els.nowPlaying.innerHTML = "";
-  const iframe = document.createElement("iframe");
-  iframe.title = track.title;
-  iframe.src = track.embedUrl;
-  iframe.width = "100%";
-  iframe.height = String(height);
-  iframe.style.borderRadius = "12px";
-  iframe.frameBorder = "0";
-  iframe.allowFullscreen = true;
-  iframe.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
-  iframe.loading = "lazy";
-  els.nowPlaying.appendChild(iframe);
+  try {
+    // Вызываем поиск аудиопотока по названию, сохраненному в вашей библиотеке
+    const streamUrl = await fetchAudioStreamUrl(track.title);
+
+    // Очищаем контейнер и создаем наш собственный независимый плеер
+    els.nowPlaying.innerHTML = "";
+    
+    const playerWrapper = document.createElement("div");
+    playerWrapper.className = "custom-audio-player";
+    playerWrapper.style.padding = "var(--space-md)";
+    playerWrapper.style.display = "flex";
+    playerWrapper.style.flexDirection = "column";
+    playerWrapper.style.gap = "var(--space-sm)";
+
+    // Название текущего трека над плеером
+    const trackInfo = document.createElement("div");
+    trackInfo.innerHTML = `
+      <div style="font-weight: 700; font-size: 16px; color: var(--color-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        ${escapeHtml(track.title)}
+      </div>
+      <div style="font-size: 12px; color: var(--color-body-mid); text-transform: uppercase; font-weight: 600;">
+        ${escapeHtml(track.type)} • Стрим без ограничений
+      </div>
+    `;
+
+    // Создаем стандартный HTML5 аудио-элемент
+    const audioEl = document.createElement("audio");
+    audioEl.src = streamUrl;
+    audioEl.controls = true;
+    audioEl.autoplay = true; // Начинать играть сразу при выборе
+    audioEl.style.width = "100%";
+    audioEl.style.marginTop = "var(--space-xs)";
+    
+    // Кастомные стили для интеграции в ваш дизайн (перебиваем дефолтный цвет хрома под ваш --color-primary)
+    audioEl.style.borderRadius = "var(--radius-sm)";
+
+    playerWrapper.appendChild(trackInfo);
+    playerWrapper.appendChild(audioEl);
+    els.nowPlaying.appendChild(playerWrapper);
+
+  } catch (error) {
+    // Если трек не нашелся (например, название в базе осталось в виде плейсхолдера "Трек • 1a2b3c")
+    els.nowPlaying.innerHTML = `
+      <div class="empty-state" style="color: var(--color-primary)">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <p>Не удалось запустить поток. Переименуйте трек вручную (значок ✎), указав точное имя артиста и песни, и попробуйте снова.</p>
+      </div>`;
+    console.error(error);
+  }
 };
 
 const trackCardTemplate = (track) => {
